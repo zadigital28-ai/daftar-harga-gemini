@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zadigital - Solusi Digital Terpercaya</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        :root {
+            --brand-primary: #0a1645;
+            --brand-accent: #0eeef7;
+            --brand-secondary: #126bdd;
+        }
+
+        body {
+            font-family: 'Plus+Jakarta+Sans', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE and Edge */
+        }
+
+        /* Sembunyikan Scrollbar secara global */
+        body::-webkit-scrollbar, 
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .dark {
+            --bg-color: #0a1645;
+            --surface-color: #0d1f5c;
+            --text-color: #f0f4ff;
+            --border-color: #1e293b;
+        }
+
+        .light {
+            --bg-color: #f0f4ff;
+            --surface-color: #ffffff;
+            --text-color: #0a1645;
+            --border-color: #e2e8f0;
+        }
+
+        .loader-wrapper {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: var(--brand-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .service-card:hover {
+            transform: translateY(-8px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        #cart-drawer {
+            transition: transform 0.3s ease-in-out;
+        }
+
+        /* Testimonial Marquee Animation */
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        .marquee-content {
+            display: inline-flex;
+            animation: marquee 40s linear infinite;
+        }
+
+        .marquee-content:hover {
+            animation-play-state: paused;
+        }
+
+        .error-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: #ef4444;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+    </style>
+</head>
+<body class="light bg-[var(--bg-color)] text-[var(--text-color)] min-h-screen overflow-x-hidden">
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loader-wrapper">
+        <div id="loader-spinner" class="w-24 h-24 border-4 border-white/20 border-t-[var(--brand-accent)] rounded-full animate-spin mb-4"></div>
+        <h1 id="loading-brand-name" class="text-white text-2xl font-bold tracking-widest animate-pulse uppercase">ZADIGITAL</h1>
+        <div id="error-message" class="hidden text-white/90 text-sm mt-6 text-center px-6 max-w-lg">
+            <div class="bg-red-500/20 p-6 rounded-3xl border border-red-500/50">
+                <i data-lucide="alert-triangle" class="w-10 h-10 mx-auto mb-4 text-red-400"></i>
+                <h3 class="text-lg font-bold mb-2">Koneksi Spreadsheet Gagal</h3>
+                <p class="text-xs opacity-70 mb-4 leading-relaxed italic">Gagal mengambil data. Pastikan spreadsheet dipublikasikan ke web sebagai CSV.</p>
+                <button onclick="location.reload()" class="w-full py-3 bg-white text-[var(--brand-primary)] rounded-xl font-bold">Coba Lagi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="error-toast" class="error-toast"></div>
+
+    <!-- Promo Popup -->
+    <div id="promo-popup" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-[var(--surface-color)] rounded-3xl max-w-md w-full p-8 shadow-2xl relative border border-[var(--brand-accent)]">
+            <button onclick="closePopup()" class="absolute top-4 right-4 p-2 hover:bg-black/10 rounded-full"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div id="promo-content" class="text-center"></div>
+        </div>
+    </div>
+
+    <!-- Header / Navbar -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between bg-[var(--surface-color)]/80 backdrop-blur-lg rounded-2xl p-3 shadow-lg border border-white/10">
+            <div class="flex items-center gap-3">
+                <img id="nav-logo" src="" alt="Logo" class="w-10 h-10 object-contain rounded-lg hidden">
+                <span id="nav-brand-name" class="text-xl font-bold tracking-tight">Brand</span>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <button onclick="toggleTheme()" class="p-2 rounded-xl bg-black/5 dark:bg-white/5 hover:scale-110 transition-transform">
+                    <i id="theme-icon" data-lucide="sun" class="w-5 h-5"></i>
+                </button>
+                <button onclick="toggleCart()" class="p-2 rounded-xl bg-[var(--brand-accent)]/20 hover:scale-110 transition-transform relative">
+                    <i data-lucide="shopping-cart" class="w-5 h-5 text-[var(--brand-secondary)]"></i>
+                    <span id="cart-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-40 pb-20 px-4">
+        <div class="max-w-7xl mx-auto text-center relative flex flex-col items-center">
+            <img id="hero-logo" src="" alt="Brand Logo" class="w-24 h-24 mb-6 object-contain hidden animate-bounce">
+            <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-80 bg-[var(--brand-accent)] opacity-10 blur-[120px] -z-10 rounded-full"></div>
+            <h1 id="hero-title" class="text-5xl md:text-7xl font-extrabold mb-6 bg-gradient-to-r from-[var(--brand-secondary)] to-[var(--brand-accent)] bg-clip-text text-transparent italic tracking-tighter uppercase"></h1>
+            <p id="hero-subtitle" class="text-lg md:text-xl opacity-80 mb-10 max-w-2xl mx-auto leading-relaxed"></p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="#services-section" class="bg-[var(--brand-secondary)] text-white px-10 py-5 rounded-2xl font-bold shadow-2xl shadow-[var(--brand-secondary)]/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                    <i data-lucide="layout-grid" class="w-5 h-5"></i> Lihat Layanan
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cara Order Section (Redesigned) -->
+    <section class="py-20 px-4 bg-[var(--surface-color)] rounded-[60px] mx-4 border border-[var(--border-color)]">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <span class="text-[var(--brand-secondary)] font-bold text-xs uppercase tracking-[0.3em]">Panduan</span>
+                <h2 class="text-3xl md:text-4xl font-bold mt-2 italic">Langkah Mudah Memesan</h2>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Step 1 -->
+                <div class="p-8 bg-[var(--bg-color)] rounded-[40px] border border-[var(--border-color)] relative group">
+                    <div class="w-16 h-16 bg-[var(--brand-accent)]/10 rounded-3xl flex items-center justify-center mb-6 text-[var(--brand-secondary)] group-hover:bg-[var(--brand-secondary)] group-hover:text-white transition-all">
+                        <i data-lucide="search" class="w-8 h-8"></i>
+                    </div>
+                    <span class="absolute top-8 right-8 text-4xl font-black opacity-5">01</span>
+                    <h4 class="font-bold text-xl mb-3 italic">Pilih Layanan</h4>
+                    <p class="text-sm opacity-60 leading-relaxed">Cari platform dan jenis layanan terbaik yang Anda butuhkan melalui katalog kami.</p>
+                </div>
+                <!-- Step 2 -->
+                <div class="p-8 bg-[var(--bg-color)] rounded-[40px] border border-[var(--border-color)] relative group">
+                    <div class="w-16 h-16 bg-[var(--brand-accent)]/10 rounded-3xl flex items-center justify-center mb-6 text-[var(--brand-secondary)] group-hover:bg-[var(--brand-secondary)] group-hover:text-white transition-all">
+                        <i data-lucide="shopping-cart" class="w-8 h-8"></i>
+                    </div>
+                    <span class="absolute top-8 right-8 text-4xl font-black opacity-5">02</span>
+                    <h4 class="font-bold text-xl mb-3 italic">Tambah Keranjang</h4>
+                    <p class="text-sm opacity-60 leading-relaxed">Masukkan ke keranjang dan sesuaikan jumlah (Quantity) sesuai target yang diinginkan.</p>
+                </div>
+                <!-- Step 3 -->
+                <div class="p-8 bg-[var(--bg-color)] rounded-[40px] border border-[var(--border-color)] relative group">
+                    <div class="w-16 h-16 bg-[var(--brand-accent)]/10 rounded-3xl flex items-center justify-center mb-6 text-[var(--brand-secondary)] group-hover:bg-[var(--brand-secondary)] group-hover:text-white transition-all">
+                        <i data-lucide="check-square" class="w-8 h-8"></i>
+                    </div>
+                    <span class="absolute top-8 right-8 text-4xl font-black opacity-5">03</span>
+                    <h4 class="font-bold text-xl mb-3 italic">Pesan Sekarang</h4>
+                    <p class="text-sm opacity-60 leading-relaxed">Review belanjaan Anda di keranjang lalu klik tombol Pesan Sekarang.</p>
+                </div>
+                <!-- Step 4 -->
+                <div class="p-8 bg-[var(--bg-color)] rounded-[40px] border border-[var(--border-color)] relative group">
+                    <div class="w-16 h-16 bg-[var(--brand-accent)]/10 rounded-3xl flex items-center justify-center mb-6 text-[var(--brand-secondary)] group-hover:bg-[var(--brand-secondary)] group-hover:text-white transition-all">
+                        <i data-lucide="link" class="w-8 h-8"></i>
+                    </div>
+                    <span class="absolute top-8 right-8 text-4xl font-black opacity-5">04</span>
+                    <h4 class="font-bold text-xl mb-3 italic">Kirim Link</h4>
+                    <p class="text-sm opacity-60 leading-relaxed">Berikan link profil atau link postingan yang ingin diproses kepada admin WhatsApp.</p>
+                </div>
+                <!-- Step 5 -->
+                <div class="p-8 bg-[var(--bg-color)] rounded-[40px] border border-[var(--border-color)] relative group">
+                    <div class="w-16 h-16 bg-[var(--brand-accent)]/10 rounded-3xl flex items-center justify-center mb-6 text-[var(--brand-secondary)] group-hover:bg-[var(--brand-secondary)] group-hover:text-white transition-all">
+                        <i data-lucide="clock" class="w-8 h-8"></i>
+                    </div>
+                    <span class="absolute top-8 right-8 text-4xl font-black opacity-5">05</span>
+                    <h4 class="font-bold text-xl mb-3 italic">Tunggu Proses</h4>
+                    <p class="text-sm opacity-60 leading-relaxed">Tim kami akan segera memproses pesanan Anda secara instan dan aman.</p>
+                </div>
+                <!-- Step 6 -->
+                <div class="p-8 bg-pink-500/5 rounded-[40px] border border-pink-500/20 relative group">
+                    <div class="w-16 h-16 bg-pink-500/10 rounded-3xl flex items-center justify-center mb-6 text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-all">
+                        <i data-lucide="gift" class="w-8 h-8"></i>
+                    </div>
+                    <span class="absolute top-8 right-8 text-4xl font-black opacity-5">06</span>
+                    <h4 class="font-bold text-xl mb-3 italic">Klaim Bonus</h4>
+                    <p class="text-sm opacity-60 leading-relaxed">Dapatkan kejutan menarik dan bonus khusus bagi pelanggan setia Zadigital!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services-section" class="py-24 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col lg:flex-row gap-6 mb-16 sticky top-20 z-40 bg-[var(--bg-color)]/80 backdrop-blur-xl p-6 rounded-[40px] border border-[var(--border-color)] shadow-xl">
+                <div class="flex-1 space-y-6 overflow-hidden">
+                    <!-- Search -->
+                    <div class="relative group">
+                        <i data-lucide="search" class="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 opacity-40"></i>
+                        <input type="text" id="search-input" oninput="handleFilter()" placeholder="Cari layanan..." class="w-full pl-14 pr-6 py-4 rounded-2xl bg-[var(--surface-color)] border border-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-secondary)] transition-all font-medium">
+                    </div>
+
+                    <!-- Platform Scrollable Filter -->
+                    <div class="relative flex items-center group/scroll">
+                        <button onclick="scrollFilters(-150)" class="absolute -left-2 z-10 p-2 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-full shadow-lg opacity-0 group-hover/scroll:opacity-100 transition-opacity">
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                        </button>
+                        <div id="platform-filters" class="flex overflow-x-auto gap-2 pb-2 hide-scrollbar scroll-smooth w-full px-4"></div>
+                        <button onclick="scrollFilters(150)" class="absolute -right-2 z-10 p-2 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-full shadow-lg opacity-0 group-hover/scroll:opacity-100 transition-opacity">
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div id="category-filters-container" class="hidden">
+                        <div id="category-filters" class="flex overflow-x-auto gap-2 pb-2 hide-scrollbar"></div>
+                    </div>
+                </div>
+
+                <div class="lg:w-72">
+                    <span class="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-2 block ml-2">Urutkan</span>
+                    <select id="sort-select" onchange="handleFilter()" class="w-full p-4 rounded-2xl bg-[var(--surface-color)] border border-[var(--border-color)] focus:outline-none font-bold">
+                        <option value="default">Default</option>
+                        <option value="cheap">Harga Termurah</option>
+                        <option value="expensive">Harga Termahal</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Services Grid -->
+            <div id="services-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+            <div id="pagination" class="mt-20 flex justify-center gap-3"></div>
+        </div>
+    </section>
+
+    <!-- Testimonials Loop -->
+    <section class="py-24 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 mb-12 text-center">
+            <h2 class="text-3xl font-bold italic">Apa Kata Mereka?</h2>
+        </div>
+        <div class="marquee-container">
+            <div id="testimonial-marquee" class="marquee-content gap-8 px-4">
+                <!-- Testimonials duplicated for infinite loop in JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Bonus Section -->
+    <section id="bonus-section" class="py-16 px-4 hidden">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-3xl font-bold text-center mb-8 italic">Bonus Menanti!</h2>
+            <div id="bonus-grid" class="flex flex-wrap justify-center gap-8"></div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--surface-color)] pt-24 pb-12 px-6 border-t border-[var(--border-color)]">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-16 mb-20">
+                <div>
+                    <div class="flex items-center gap-4 mb-8">
+                        <img id="footer-logo" src="" alt="Logo" class="w-14 h-14 object-contain hidden">
+                        <span id="footer-brand-name" class="text-2xl font-bold tracking-tight">Brand</span>
+                    </div>
+                    <div id="footer-sosmed" class="flex gap-4"></div>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-8 italic uppercase tracking-widest text-xs">Hubungi Kami</h4>
+                    <div class="flex items-center gap-4">
+                        <a id="footer-wa-link" href="#" target="_blank" class="flex items-center gap-4 p-5 bg-green-500/10 border border-green-500/20 rounded-3xl hover:bg-green-500 hover:text-white transition-all group flex-1">
+                            <div class="w-12 h-12 rounded-2xl bg-green-500 flex items-center justify-center text-white group-hover:bg-white group-hover:text-green-500 transition-colors">
+                                <i data-lucide="phone" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <span class="text-[10px] uppercase font-black opacity-50 block mb-0.5">WhatsApp Admin</span>
+                                <span id="footer-wa" class="font-bold text-lg"></span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-8 italic uppercase tracking-widest text-xs">Tentang</h4>
+                    <p class="text-sm opacity-60 leading-relaxed italic">
+                        Partner terpercaya untuk meningkatkan kredibilitas dan performa akun sosial media Anda secara profesional.
+                    </p>
+                </div>
+            </div>
+            <div class="text-center pt-10 border-t border-[var(--border-color)] text-[10px] opacity-40 font-bold uppercase tracking-[0.2em]">
+                <p id="footer-text"></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Drawer -->
+    <div id="cart-drawer" class="fixed top-0 bottom-0 right-0 w-full md:w-[450px] bg-[var(--surface-color)] z-[70] translate-x-full shadow-2xl flex flex-col border-l border-[var(--border-color)]">
+        <div class="p-8 border-b border-[var(--border-color)] flex items-center justify-between bg-[var(--brand-primary)] text-white">
+            <div class="flex items-center gap-4">
+                <i data-lucide="shopping-bag" class="w-8 h-8 text-[var(--brand-accent)]"></i>
+                <h3 class="text-2xl font-bold italic">Keranjang</h3>
+            </div>
+            <button onclick="toggleCart()" class="p-3 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="x" class="w-8 h-8"></i></button>
+        </div>
+        <div id="cart-items" class="flex-1 overflow-y-auto p-8 space-y-6"></div>
+        <div class="p-8 bg-[var(--bg-color)] border-t border-[var(--border-color)] space-y-6 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)]">
+            <div class="flex justify-between items-center">
+                <span class="opacity-50 font-bold uppercase text-xs tracking-widest">Grand Total</span>
+                <span id="cart-total" class="text-3xl font-black text-[var(--brand-secondary)]">Rp 0</span>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="clearCart()" class="py-5 rounded-2xl border-2 border-red-500 text-red-500 font-bold hover:bg-red-500 hover:text-white transition-all">Kosongkan</button>
+                <button onclick="orderViaWA()" class="py-5 rounded-2xl bg-green-500 text-white font-bold flex items-center justify-center gap-3 hover:bg-green-600 transition-all shadow-xl shadow-green-500/20"><i data-lucide="send" class="w-5 h-5"></i> Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll Top -->
+    <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="fixed bottom-8 right-8 p-5 bg-[var(--brand-secondary)] text-white rounded-2xl shadow-2xl z-40 transition-all hover:scale-110 active:scale-90"><i data-lucide="chevron-up" class="w-6 h-6"></i></button>
+
+    <script>
+        const BRANDING_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOYY28haMZrDrwXrYkOBIlHEptevtiv7O8M8RkR0G_K5vZacWRJNwGM-5N3wCjDaU-9KqzywcaL8DA/pub?gid=0&single=true&output=csv';
+        const DATA_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOYY28haMZrDrwXrYkOBIlHEptevtiv7O8M8RkR0G_K5vZacWRJNwGM-5N3wCjDaU-9KqzywcaL8DA/pub?gid=1910038505&single=true&output=csv';
+        const TESTIMONY_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOYY28haMZrDrwXrYkOBIlHEptevtiv7O8M8RkR0G_K5vZacWRJNwGM-5N3wCjDaU-9KqzywcaL8DA/pub?gid=1790988718&single=true&output=csv';
+
+        let appData = {
+            branding: {},
+            services: [],
+            testimonials: [],
+            cart: JSON.parse(sessionStorage.getItem('cart') || '[]'),
+            filters: { platform: 'Semua', category: 'Semua', search: '', sort: 'default', page: 1 }
+        };
+
+        const ITEMS_PER_PAGE = 20;
+
+        // Fungsi membersihkan dan memformat harga yang benar
+        const cleanPrice = (val) => {
+            if (!val) return 0;
+            // Hapus titik, koma, dan karakter non-angka agar menjadi integer murni
+            return parseInt(val.toString().replace(/[^0-9]/g, '')) || 0;
+        };
+
+        const formatPrice = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
+
+        const showToast = (msg) => {
+            const toast = document.getElementById('error-toast');
+            toast.innerText = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 5000);
+        };
+
+        const parseCSV = (csvText) => {
+            if (!csvText) return [];
+            const lines = csvText.trim().split(/\r?\n/);
+            if (lines.length === 0) return [];
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            return lines.slice(1).map(line => {
+                const values = [];
+                let current = "", inQuotes = false;
+                for (let char of line) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) { values.push(current.trim()); current = ""; }
+                    else current += char;
+                }
+                values.push(current.trim());
+                return headers.reduce((obj, header, index) => {
+                    obj[header] = (values[index] || "").replace(/^"|"$/g, '');
+                    return obj;
+                }, {});
+            });
+        };
+
+        const fetchWithRetry = async (url, retries = 3) => {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit', cache: 'no-cache' });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return await response.text();
+                } catch (e) {
+                    if (i === retries - 1) throw e;
+                    await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+                }
+            }
+        };
+
+        const getPlatformIcon = (platform) => {
+            const p = (platform || '').toLowerCase();
+            if (p.includes('instagram')) return 'instagram';
+            if (p.includes('tiktok')) return 'music-2';
+            if (p.includes('youtube')) return 'youtube';
+            if (p.includes('facebook')) return 'facebook';
+            if (p.includes('twitter') || p.includes('x')) return 'twitter';
+            if (p.includes('spotify')) return 'music';
+            if (p.includes('telegram')) return 'send';
+            return 'globe';
+        };
+
+        const fixDriveUrl = (url) => {
+            if (!url) return '';
+            const idMatch = url.match(/id=([^&]+)/) || url.match(/\/file\/d\/([^/]+)/);
+            return idMatch ? `https://drive.google.com/uc?id=${idMatch[1]}` : url;
+        };
+
+        const toggleTheme = () => {
+            const body = document.body;
+            const icon = document.getElementById('theme-icon');
+            if (body.classList.contains('light')) {
+                body.classList.replace('light', 'dark');
+                icon.setAttribute('data-lucide', 'moon');
+            } else {
+                body.classList.replace('dark', 'light');
+                icon.setAttribute('data-lucide', 'sun');
+            }
+            lucide.createIcons();
+        };
+
+        const toggleCart = () => document.getElementById('cart-drawer').classList.toggle('translate-x-full');
+        const closePopup = () => document.getElementById('promo-popup').classList.add('hidden');
+
+        const scrollFilters = (amount) => {
+            const el = document.getElementById('platform-filters');
+            el.scrollLeft += amount;
+        };
+
+        const fetchData = async () => {
+            try {
+                const [brandT, dataT, testT] = await Promise.all([
+                    fetchWithRetry(BRANDING_CSV), fetchWithRetry(DATA_CSV), fetchWithRetry(TESTIMONY_CSV)
+                ]);
+                const brandArray = parseCSV(brandT);
+                brandArray.forEach(item => { appData.branding[item.key] = item.value; });
+                appData.services = parseCSV(dataT);
+                appData.testimonials = parseCSV(testT);
+                renderAll();
+                setTimeout(() => {
+                    document.getElementById('loading-screen').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loading-screen').remove(), 500);
+                }, 800);
+            } catch (error) {
+                document.getElementById('loader-spinner').classList.add('hidden');
+                document.getElementById('error-message').classList.remove('hidden');
+            }
+        };
+
+        const renderAll = () => {
+            renderBranding(); renderFilters(); handleFilter(); renderTestimonials(); renderCart(); renderBonus();
+            initEventListeners();
+            lucide.createIcons();
+        };
+
+        const renderBranding = () => {
+            const b = appData.branding;
+            if (b.color_default) document.documentElement.style.setProperty('--brand-primary', b.color_default);
+            if (b.color_accent) document.documentElement.style.setProperty('--brand-accent', b.color_accent);
+            if (b.color_secondary) document.documentElement.style.setProperty('--brand-secondary', b.color_secondary);
+            
+            document.getElementById('nav-brand-name').innerText = b.brand_name || 'Zadigital';
+            document.getElementById('footer-brand-name').innerText = b.brand_name || 'Zadigital';
+            document.getElementById('hero-title').innerText = b.hero_title || '';
+            document.getElementById('hero-subtitle').innerText = b.hero_subtitle || '';
+            document.getElementById('footer-text').innerText = b.footer_text || '';
+            document.getElementById('footer-wa').innerText = b.wa_number || '';
+            document.getElementById('footer-wa-link').href = `https://wa.me/${b.wa_number}`;
+
+            if (b.logo_url) {
+                const logo = fixDriveUrl(b.logo_url);
+                document.getElementById('nav-logo').src = logo;
+                document.getElementById('nav-logo').classList.remove('hidden');
+                document.getElementById('footer-logo').src = logo;
+                document.getElementById('footer-logo').classList.remove('hidden');
+                document.getElementById('hero-logo').src = logo;
+                document.getElementById('hero-logo').classList.remove('hidden');
+            }
+            if (b.pop_up) {
+                document.getElementById('promo-popup').classList.remove('hidden');
+                document.getElementById('promo-content').innerHTML = `
+                    <h3 class="text-2xl font-bold mb-4 italic tracking-tight">📢 Info Penting</h3>
+                    <p class="opacity-80 mb-6 leading-relaxed">${b.pop_up}</p>
+                    <button onclick="closePopup()" class="w-full py-4 bg-[var(--brand-secondary)] text-white rounded-2xl font-bold">Lanjutkan</button>
+                `;
+            }
+            const sos = document.getElementById('footer-sosmed');
+            sos.innerHTML = '';
+            if (b.ig_url) sos.innerHTML += `<a href="${b.ig_url}" target="_blank" class="p-4 bg-[var(--bg-color)] rounded-2xl border border-[var(--border-color)] hover:scale-110 transition-transform"><i data-lucide="instagram" class="text-pink-500"></i></a>`;
+            if (b.tiktok_url) sos.innerHTML += `<a href="${b.tiktok_url}" target="_blank" class="p-4 bg-[var(--bg-color)] rounded-2xl border border-[var(--border-color)] hover:scale-110 transition-transform"><i data-lucide="music-2" class="text-blue-400"></i></a>`;
+        };
+
+        const renderFilters = () => {
+            const plats = [...new Set(appData.services.map(s => s.platform))].filter(Boolean);
+            const cont = document.getElementById('platform-filters');
+            cont.innerHTML = `<button onclick="setPlatform('Semua')" class="px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all ${appData.filters.platform === 'Semua' ? 'bg-[var(--brand-secondary)] text-white scale-105 shadow-lg' : 'bg-[var(--surface-color)] opacity-60'}">Semua</button>` + 
+                plats.map(p => `<button onclick="setPlatform('${p}')" class="px-6 py-3 rounded-2xl font-bold flex items-center gap-3 whitespace-nowrap transition-all ${appData.filters.platform === p ? 'bg-[var(--brand-secondary)] text-white scale-105 shadow-lg' : 'bg-[var(--surface-color)] opacity-60'}"><i data-lucide="${getPlatformIcon(p)}" class="w-5 h-5"></i>${p}</button>`).join('');
+            lucide.createIcons();
+        };
+
+        const renderCategories = () => {
+            const cont = document.getElementById('category-filters-container');
+            const inner = document.getElementById('category-filters');
+            if (appData.filters.platform === 'Semua') { cont.classList.add('hidden'); return; }
+            cont.classList.remove('hidden');
+            const cats = [...new Set(appData.services.filter(s => s.platform === appData.filters.platform).map(s => s.jenis_layanan))].filter(Boolean);
+            inner.innerHTML = `<button onclick="setCategory('Semua')" class="px-5 py-2 rounded-xl text-xs font-bold whitespace-nowrap border ${appData.filters.category === 'Semua' ? 'bg-[var(--brand-accent)] border-[var(--brand-accent)] text-[var(--brand-primary)]' : 'border-[var(--border-color)] opacity-60'}">Semua Kategori</button>` + 
+                cats.map(c => `<button onclick="setCategory('${c}')" class="px-5 py-2 rounded-xl text-xs font-bold whitespace-nowrap border ${appData.filters.category === c ? 'bg-[var(--brand-accent)] border-[var(--brand-accent)] text-[var(--brand-primary)]' : 'border-[var(--border-color)] opacity-60'}">${c}</button>`).join('');
+        };
+
+        const setPlatform = (p) => { appData.filters.platform = p; appData.filters.category = 'Semua'; appData.filters.page = 1; renderFilters(); renderCategories(); handleFilter(); };
+        const setCategory = (c) => { appData.filters.category = c; appData.filters.page = 1; renderCategories(); handleFilter(); };
+
+        const handleFilter = () => {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const sort = document.getElementById('sort-select').value;
+            let filtered = appData.services.filter(s => {
+                const mP = appData.filters.platform === 'Semua' || s.platform === appData.filters.platform;
+                const mC = appData.filters.category === 'Semua' || s.jenis_layanan === appData.filters.category;
+                const mS = s.nama_layanan.toLowerCase().includes(search) || s.platform.toLowerCase().includes(search);
+                return mP && mC && mS;
+            });
+            filtered.sort((a, b) => {
+                if (a.badge === 'Terlaris' && b.badge !== 'Terlaris') return -1;
+                if (a.badge !== 'Terlaris' && b.badge === 'Terlaris') return 1;
+                const pA = cleanPrice(a.harga), pB = cleanPrice(b.harga);
+                if (sort === 'cheap') return pA - pB;
+                if (sort === 'expensive') return pB - pA;
+                return 0;
+            });
+            const start = (appData.filters.page - 1) * ITEMS_PER_PAGE;
+            renderServices(filtered.slice(start, start + ITEMS_PER_PAGE));
+            renderPagination(Math.ceil(filtered.length / ITEMS_PER_PAGE));
+        };
+
+        const renderServices = (services) => {
+            const grid = document.getElementById('services-grid');
+            if (services.length === 0) { grid.innerHTML = `<div class="col-span-full py-24 text-center opacity-40"><i data-lucide="search-x" class="w-20 h-20 mx-auto mb-4"></i><p class="text-xl italic">Layanan tidak ditemukan.</p></div>`; lucide.createIcons(); return; }
+            grid.innerHTML = services.map(s => {
+                const isOut = s.stok?.toLowerCase() === 'habis';
+                const cPrice = cleanPrice(s.harga);
+                return `
+                    <div class="service-card group bg-[var(--surface-color)] border border-[var(--border-color)] rounded-[40px] p-8 flex flex-col shadow-sm transition-all duration-300">
+                        <div class="flex justify-between items-start mb-8">
+                            <div class="w-16 h-16 rounded-3xl bg-[var(--brand-accent)]/10 flex items-center justify-center">
+                                <i data-lucide="${getPlatformIcon(s.platform)}" class="w-8 h-8 text-[var(--brand-secondary)]"></i>
+                            </div>
+                            <div class="flex flex-col items-end gap-2">
+                                ${s.badge ? `<span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${s.badge.includes('Terlaris') ? 'bg-orange-500' : 'bg-blue-500'} text-white shadow-lg shadow-blue-500/20">${s.badge}</span>` : ''}
+                                <span class="text-[10px] font-bold opacity-30 italic uppercase tracking-widest">${s.platform}</span>
+                            </div>
+                        </div>
+                        <!-- Judul paling besar -->
+                        <h3 class="text-2xl md:text-3xl font-black mb-4 leading-tight italic group-hover:text-[var(--brand-secondary)] transition-colors">${s.nama_layanan}</h3>
+                        ${s.deskripsi ? `<p class="text-sm opacity-50 mb-8 line-clamp-2 italic leading-relaxed">${s.deskripsi}</p>` : '<div class="mb-8"></div>'}
+                        <div class="mt-auto">
+                            <div class="mb-8">
+                                <span class="text-2xl font-bold text-[var(--brand-secondary)]">${formatPrice(cPrice)}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2 h-2 rounded-full ${isOut ? 'bg-red-500' : 'bg-green-500 animate-pulse'}"></div>
+                                    <span class="text-[10px] font-black ${isOut ? 'text-red-500' : 'text-green-500'} uppercase tracking-widest">${s.stok || 'Tersedia'}</span>
+                                </div>
+                                <button data-action="buy" data-name="${s.nama_layanan}" data-price="${cPrice}" ${isOut ? 'disabled' : ''} class="flex-1 py-4 px-6 rounded-2xl font-bold text-sm bg-[var(--brand-primary)] text-white hover:scale-105 active:scale-95 transition-all disabled:opacity-20 shadow-xl">Tambah</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        };
+
+        const renderPagination = (total) => {
+            const cont = document.getElementById('pagination');
+            if (total <= 1) { cont.innerHTML = ''; return; }
+            cont.innerHTML = Array.from({length: total}, (_, i) => i + 1).map(n => `<button data-action="page" data-page="${n}" class="w-12 h-12 rounded-2xl font-bold transition-all ${n === appData.filters.page ? 'bg-[var(--brand-secondary)] text-white shadow-xl' : 'bg-[var(--surface-color)] border border-[var(--border-color)] opacity-60'}">${n}</button>`).join('');
+        };
+
+        const initEventListeners = () => {
+            document.body.addEventListener('click', (e) => {
+                const buyBtn = e.target.closest('[data-action="buy"]');
+                if (buyBtn) addToCart(buyBtn.dataset.name, parseInt(buyBtn.dataset.price));
+                const pageBtn = e.target.closest('[data-action="page"]');
+                if (pageBtn) { appData.filters.page = parseInt(pageBtn.dataset.page); handleFilter(); document.getElementById('services-section').scrollIntoView({ behavior: 'smooth' }); }
+            });
+        };
+
+        const renderTestimonials = () => {
+            const marquee = document.getElementById('testimonial-marquee');
+            const data = appData.testimonials.length > 0 ? [...appData.testimonials, ...appData.testimonials] : []; // Duplicate for loop
+            marquee.innerHTML = data.map(t => `
+                <div class="p-8 bg-[var(--surface-color)] rounded-[40px] border border-[var(--border-color)] shadow-sm min-w-[320px] md:min-w-[400px]">
+                    <div class="flex gap-1 mb-5">${Array(parseInt(t.bintang || 5)).fill(0).map(() => `<i data-lucide="star" class="w-4 h-4 fill-yellow-400 text-yellow-400"></i>`).join('')}</div>
+                    <p class="text-sm italic mb-8 opacity-70 leading-relaxed font-medium whitespace-normal">"${t.isi}"</p>
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--brand-secondary)] to-[var(--brand-accent)] flex items-center justify-center text-white font-bold text-lg">${t.nama?.charAt(0) || '?'}</div>
+                        <div><h4 class="font-bold text-sm">${t.nama}</h4><span class="text-[10px] opacity-40 uppercase font-black tracking-widest">${t.platform_order}</span></div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        };
+
+        const renderBonus = () => {
+            const b = appData.branding;
+            const imgs = ['Bonus_1', 'Bonus_2', 'Bonus_3'].map(k => b[k]).filter(Boolean);
+            const cont = document.getElementById('bonus-section');
+            if (imgs.length === 0) { cont.classList.add('hidden'); return; }
+            cont.classList.remove('hidden');
+            document.getElementById('bonus-grid').innerHTML = imgs.map(img => `<img src="${fixDriveUrl(img)}" alt="Bonus" class="h-48 md:h-64 object-contain rounded-3xl hover:scale-105 transition-transform duration-500 shadow-2xl">`).join('');
+        };
+
+        const addToCart = (name, price) => {
+            const ex = appData.cart.find(i => i.name === name);
+            if (ex) ex.qty += 1; else appData.cart.push({ name, price, qty: 1 });
+            saveCart(); renderCart(); toggleCart();
+        };
+        const updateQty = (index, d) => { appData.cart[index].qty += d; if (appData.cart[index].qty < 1) appData.cart.splice(index, 1); saveCart(); renderCart(); };
+        const removeItem = (index) => { appData.cart.splice(index, 1); saveCart(); renderCart(); };
+        const clearCart = () => { appData.cart = []; saveCart(); renderCart(); };
+        const saveCart = () => sessionStorage.setItem('cart', JSON.stringify(appData.cart));
+
+        const renderCart = () => {
+            const cont = document.getElementById('cart-items'), badge = document.getElementById('cart-badge'), totEl = document.getElementById('cart-total');
+            if (appData.cart.length === 0) {
+                cont.innerHTML = `<div class="h-full flex flex-col items-center justify-center opacity-30 text-center"><i data-lucide="shopping-basket" class="w-20 h-20 mb-4"></i><p class="font-bold uppercase tracking-widest text-xs">Keranjang Kosong</p></div>`;
+                badge.classList.add('hidden'); totEl.innerText = formatPrice(0); lucide.createIcons(); return;
+            }
+            let tot = 0, count = 0;
+            cont.innerHTML = appData.cart.map((it, idx) => {
+                const sub = it.price * it.qty; tot += sub; count += it.qty;
+                return `
+                    <div class="bg-[var(--bg-color)] p-6 rounded-3xl border border-[var(--border-color)] shadow-sm">
+                        <div class="flex justify-between items-start mb-4"><h4 class="font-bold flex-1 text-sm italic">${it.name}</h4><button onclick="removeItem(${idx})" class="p-2 text-red-500 hover:bg-red-500/10 rounded-full transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-4 bg-[var(--surface-color)] p-1.5 rounded-2xl border">
+                                <button onclick="updateQty(${idx}, -1)" class="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-black/5"><i data-lucide="minus" class="w-4 h-4"></i></button>
+                                <span class="w-6 text-center font-black text-xs">${it.qty}</span>
+                                <button onclick="updateQty(${idx}, 1)" class="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-black/5"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                            </div>
+                            <span class="font-black text-sm text-[var(--brand-secondary)]">${formatPrice(sub)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            totEl.innerText = formatPrice(tot); badge.innerText = count; badge.classList.remove('hidden'); lucide.createIcons();
+        };
+
+        const orderViaWA = () => {
+            const b = appData.branding;
+            let msg = `${b.wa_greeting || "Halo, saya ingin order:"}\n\n`, tot = 0;
+            appData.cart.forEach((it, i) => { const sub = it.price * it.qty; tot += sub; msg += `${i+1}. ${it.name} x${it.qty} = ${formatPrice(sub)}\n`; });
+            msg += `\nTotal: ${formatPrice(tot)}\n\nMohon konfirmasi ketersediaan. Terima kasih!`;
+            window.open(`https://wa.me/${b.wa_number}?text=${encodeURIComponent(msg)}`, '_blank');
+        };
+
+        const copyWA = () => {
+            const el = document.createElement('textarea'); el.value = appData.branding.wa_number; document.body.appendChild(el); el.select();
+            document.execCommand('copy'); document.body.removeChild(el);
+            showToast("Nomor WhatsApp berhasil disalin!");
+        };
+
+        window.onload = fetchData;
+        window.onscroll = () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 20) nav.classList.add('py-1', 'shadow-2xl'); else nav.classList.remove('py-1', 'shadow-2xl');
+        };
+    </script>
+</body>
+</html>
