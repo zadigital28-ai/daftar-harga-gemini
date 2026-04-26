@@ -1,73 +1,607 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Dynamic Service Store</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zadigital - Solusi Digital Terpercaya</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        :root {
+            --brand-primary: #0a1645;
+            --brand-accent: #0eeef7;
+            --brand-secondary: #126bdd;
+        }
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/framer-motion/dist/framer-motion.js"></script>
-<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        /* Hilangkan Scrollbar secara global */
+        * {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        *::-webkit-scrollbar {
+            display: none;
+        }
 
-<style>
-html{
-scroll-behavior:smooth;
-}
+        body {
+            font-family: 'Plus+Jakarta+Sans', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
 
-body{
-margin:0;
-font-family:Inter,Arial;
-background:var(--bg,#fff);
-color:var(--text,#111);
-}
+        .dark {
+            --bg-color: #0a1645;
+            --surface-color: #0d1f5c;
+            --text-color: #f0f4ff;
+            --border-color: #1e293b;
+        }
 
-.glass{
-backdrop-filter:blur(18px);
-background:rgba(255,255,255,.7);
-border-bottom:1px solid rgba(255,255,255,.2)
-}
+        .light {
+            --bg-color: #f0f4ff;
+            --surface-color: #ffffff;
+            --text-color: #0a1645;
+            --border-color: #e2e8f0;
+        }
 
-.dark{
-background:#0f172a;
-color:white;
-}
+        .tech-grid {
+            background-image: 
+                linear-gradient(to right, rgba(14, 238, 247, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(14, 238, 247, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            mask-image: radial-gradient(ellipse at center, black, transparent 90%);
+        }
 
-.loader{
-animation:pulse 1.4s infinite;
-}
+        .loader-wrapper {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: var(--brand-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease-out;
+        }
 
-@keyframes pulse{
-50%{opacity:.5}
-}
-</style>
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.2);
+        }
 
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+        }
+
+        .marquee-content {
+            display: inline-flex;
+            animation: marquee 60s linear infinite;
+        }
+
+        .marquee-container:hover .marquee-content {
+            animation-play-state: paused;
+        }
+
+        .error-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: #ef4444;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
 </head>
-<body>
-<div id="app"></div>
+<body class="dark bg-[var(--bg-color)] text-[var(--text-color)] min-h-screen">
 
-<script type="text/babel">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loader-wrapper">
+        <div id="loader-spinner" class="w-16 h-16 border-4 border-white/20 border-t-[var(--brand-accent)] rounded-full animate-spin mb-4"></div>
+        <h1 id="loading-brand-name" class="text-white text-xl font-bold tracking-widest animate-pulse uppercase">ZADIGITAL</h1>
+        <div id="error-message" class="hidden text-white/90 text-sm mt-6 text-center px-6 max-w-sm">
+            <div class="bg-red-500/20 p-4 rounded-2xl border border-red-500/50">
+                <p class="mb-3">Gagal mengambil data. Pastikan URL Spreadsheet benar dan sudah dipublikasikan sebagai CSV.</p>
+                <button onclick="location.reload()" class="w-full py-2 bg-white text-[var(--brand-primary)] rounded-lg font-bold">Coba Lagi</button>
+            </div>
+        </div>
+    </div>
 
-const {
-useState,
-useEffect,
-useMemo
-}=React;
+    <!-- Error Toast -->
+    <div id="error-toast" class="error-toast"></div>
 
-const BRANDING_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vTOYY28haMZrDrwXrYkOBIlHEptevtiv7O8M8RkR0G_K5vZacWRJNwGM-5N3wCjDaU-9KqzywcaL8DA/pub?gid=0&single=true&output=csv';
+    <!-- Header / Navbar -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between bg-[var(--surface-color)]/80 backdrop-blur-lg rounded-2xl p-2.5 shadow-lg border border-white/5">
+            <div class="flex items-center gap-3 ml-2">
+                <img id="nav-logo" src="" alt="Logo" class="w-8 h-8 object-contain rounded-lg hidden">
+                <span id="nav-brand-name" class="text-lg font-black tracking-tighter italic uppercase">Zadigital</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleTheme()" class="p-2 rounded-xl bg-black/10 dark:bg-white/5 hover:scale-105 transition-transform">
+                    <i id="theme-icon" data-lucide="sun" class="w-5 h-5"></i>
+                </button>
+                <button onclick="toggleCart()" class="p-2 rounded-xl bg-[var(--brand-accent)]/20 hover:scale-105 transition-transform relative mr-2">
+                    <i data-lucide="shopping-cart" class="w-5 h-5 text-[var(--brand-secondary)]"></i>
+                    <span id="cart-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </nav>
 
-const SERVICE_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vTOYY28haMZrDrwXrYkOBIlHEptevtiv7O8M8RkR0G_K5vZacWRJNwGM-5N3wCjDaU-9KqzywcaL8DA/pub?gid=1910038505&single=true&output=csv';
+    <!-- Hero Section -->
+    <section class="pt-40 pb-20 px-4 relative overflow-hidden">
+        <div class="absolute inset-0 tech-grid -z-10"></div>
+        <div class="max-w-7xl mx-auto text-center relative flex flex-col items-center">
+            <img id="hero-logo" src="" alt="Logo" class="w-20 h-20 mb-6 object-contain hidden animate-pulse">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[var(--brand-accent)] opacity-10 blur-[100px] -z-10 rounded-full"></div>
+            <h1 id="hero-title" class="text-5xl md:text-7xl font-black mb-4 bg-gradient-to-r from-[var(--brand-secondary)] via-[var(--brand-accent)] to-[var(--brand-secondary)] bg-clip-text text-transparent italic tracking-tighter uppercase leading-tight"></h1>
+            <p id="hero-subtitle" class="text-base md:text-xl opacity-60 mb-10 max-w-2xl mx-auto font-medium"></p>
+            <div class="flex justify-center">
+                <a href="#services-section" class="bg-[var(--brand-secondary)] text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-[var(--brand-secondary)]/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 uppercase italic text-sm tracking-widest">
+                    <i data-lucide="layout-list" class="w-5 h-5"></i> Daftar Layanan
+                </a>
+            </div>
+        </div>
+    </section>
 
-const TESTI_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vTOYY28haMZrDrwXrYkOBIlHEptevtiv7O8M8RkR0G_K5vZacWRJNwGM-5N3wCjDaU-9KqzywcaL8DA/pub?gid=1790988718&single=true&output=csv';
+    <!-- Cara Order Section -->
+    <section class="py-20 px-4 bg-[var(--surface-color)] rounded-3xl mx-4 border border-[var(--border-color)]">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <span class="text-[var(--brand-secondary)] font-black text-[10px] uppercase tracking-[0.4em]">Tutorial</span>
+                <h2 class="text-3xl font-black mt-2 italic uppercase">Cara Order</h2>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Step Cards -->
+                <div class="p-8 bg-[var(--bg-color)] rounded-2xl border border-[var(--border-color)] relative group">
+                    <div class="w-14 h-14 bg-[var(--brand-accent)]/10 rounded-2xl flex items-center justify-center mb-6 text-[var(--brand-secondary)]">
+                        <i data-lucide="search" class="w-6 h-6"></i>
+                    </div>
+                    <span class="absolute top-6 right-6 text-4xl font-black text-[var(--brand-secondary)] opacity-10">01</span>
+                    <h4 class="font-black text-lg mb-2 italic uppercase text-[var(--brand-secondary)]">Pilih Layanan</h4>
+                    <p class="text-sm opacity-50 leading-relaxed">Pilih platform dan layanan yang sesuai dengan kebutuhan Anda.</p>
+                </div>
+                <div class="p-8 bg-[var(--bg-color)] rounded-2xl border border-[var(--border-color)] relative group">
+                    <div class="w-14 h-14 bg-[var(--brand-accent)]/10 rounded-2xl flex items-center justify-center mb-6 text-[var(--brand-secondary)]">
+                        <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                    </div>
+                    <span class="absolute top-6 right-6 text-4xl font-black text-[var(--brand-secondary)] opacity-10">02</span>
+                    <h4 class="font-black text-lg mb-2 italic uppercase text-[var(--brand-secondary)]">Tambah</h4>
+                    <p class="text-sm opacity-50 leading-relaxed">Masukkan layanan ke keranjang dan tentukan jumlahnya.</p>
+                </div>
+                <div class="p-8 bg-[var(--bg-color)] rounded-2xl border border-[var(--border-color)] relative group">
+                    <div class="w-14 h-14 bg-[var(--brand-accent)]/10 rounded-2xl flex items-center justify-center mb-6 text-[var(--brand-secondary)]">
+                        <i data-lucide="check-circle" class="w-6 h-6"></i>
+                    </div>
+                    <span class="absolute top-6 right-6 text-4xl font-black text-[var(--brand-secondary)] opacity-10">03</span>
+                    <h4 class="font-black text-lg mb-2 italic uppercase text-[var(--brand-secondary)]">Checkout</h4>
+                    <p class="text-sm opacity-50 leading-relaxed">Periksa kembali pesanan Anda lalu klik tombol pesan.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-function parseCSV(url){
-return new Promise(resolve=>{
-Papa.parse(url,{
-download:true,
-header:true,
-complete:(r)=>{
-resolve(
+    <!-- Services Section -->
+    <section id="services-section" class="py-20 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col lg:flex-row gap-4 mb-10 sticky top-20 z-40 bg-[var(--bg-color)]/80 backdrop-blur-xl p-4 rounded-3xl border border-[var(--border-color)] shadow-xl">
+                <div class="flex-1 space-y-4">
+                    <div class="relative">
+                        <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 opacity-30"></i>
+                        <input type="text" id="search-input" oninput="handleFilter()" placeholder="Cari layanan..." class="w-full pl-12 pr-6 py-3.5 rounded-2xl bg-[var(--surface-color)] border border-[var(--border-color)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-secondary)] transition-all font-bold">
+                    </div>
+                    <div class="relative flex items-center group/nav">
+                        <button onclick="scrollFilters(-150)" class="absolute -left-2 z-10 p-2 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-full shadow-lg opacity-0 group-hover/nav:opacity-100 transition-opacity">
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                        </button>
+                        <div id="platform-filters" class="flex overflow-x-auto gap-2 pb-2 hide-scrollbar scroll-smooth w-full"></div>
+                        <button onclick="scrollFilters(150)" class="absolute -right-2 z-10 p-2 bg-[var(--surface-color)] border border-[var(--border-color)] rounded-full shadow-lg opacity-0 group-hover/nav:opacity-100 transition-opacity">
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="lg:w-64">
+                    <select id="sort-select" onchange="handleFilter()" class="w-full p-3.5 rounded-2xl bg-[var(--surface-color)] border border-[var(--border-color)] focus:outline-none font-black text-sm">
+                        <option value="default">Default</option>
+                        <option value="cheap">Termurah</option>
+                        <option value="expensive">Termahal</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="services-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div id="pagination" class="mt-16 flex justify-center gap-2"></div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="py-20 overflow-hidden bg-[var(--surface-color)] border-y border-[var(--border-color)]">
+        <div class="max-w-7xl mx-auto px-4 mb-10 text-center">
+            <h2 class="text-2xl font-black italic uppercase tracking-tighter">Rating Pelanggan</h2>
+        </div>
+        <div class="marquee-container group">
+            <div id="testimonial-marquee" class="marquee-content gap-6 px-4"></div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--surface-color)] pt-16 pb-8 px-6 border-t border-[var(--border-color)]">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid lg:grid-cols-3 gap-10 mb-12">
+                <div>
+                    <div class="flex items-center gap-4 mb-6">
+                        <img id="footer-logo" src="" alt="Logo" class="w-10 h-10 object-contain hidden">
+                        <span id="footer-brand-name" class="text-xl font-black tracking-tighter italic uppercase">Zadigital</span>
+                    </div>
+                    <div id="footer-sosmed" class="flex gap-4"></div>
+                </div>
+                <div>
+                    <h4 class="font-black mb-4 italic uppercase tracking-widest text-[10px] opacity-40">Hubungi Kami</h4>
+                    <a id="footer-wa-link" href="#" target="_blank" class="flex items-center gap-4 p-4 bg-green-500/5 border border-green-500/10 rounded-2xl hover:bg-green-500/10 transition-all group">
+                        <div class="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center text-white">
+                            <i data-lucide="message-circle" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <span class="text-[9px] uppercase font-black opacity-30 block">WhatsApp Admin</span>
+                            <span id="footer-wa" class="font-black text-lg"></span>
+                        </div>
+                    </a>
+                </div>
+                <div>
+                    <h4 class="font-black mb-4 italic uppercase tracking-widest text-[10px] opacity-40">Info</h4>
+                    <p class="text-xs opacity-50 leading-relaxed italic font-medium">Layanan booster sosial media terbaik, aman, dan instan.</p>
+                </div>
+            </div>
+            <div class="text-center pt-8 border-t border-[var(--border-color)] text-[9px] opacity-30 font-black uppercase tracking-[0.3em]">
+                <p id="footer-text"></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Drawer -->
+    <div id="cart-drawer" class="fixed top-0 bottom-0 right-0 w-full md:w-[450px] bg-[var(--surface-color)] z-[70] translate-x-full shadow-2xl flex flex-col border-l border-[var(--border-color)]">
+        <div class="p-8 border-b border-[var(--border-color)] flex items-center justify-between bg-[var(--brand-primary)] text-white">
+            <div class="flex items-center gap-4">
+                <i data-lucide="shopping-bag" class="w-7 h-7 text-[var(--brand-accent)]"></i>
+                <h3 class="text-xl font-black italic uppercase">Keranjang</h3>
+            </div>
+            <button onclick="toggleCart()" class="p-2 hover:bg-white/10 rounded-full transition-colors"><i data-lucide="x" class="w-7 h-7"></i></button>
+        </div>
+        <div id="cart-items" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
+        <div class="p-8 bg-[var(--bg-color)] border-t border-[var(--border-color)] space-y-6">
+            <div class="flex justify-between items-center">
+                <span class="opacity-40 font-black uppercase text-[10px]">Total Bayar</span>
+                <span id="cart-total" class="text-2xl font-black text-[var(--brand-secondary)]">Rp 0</span>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="clearCart()" class="py-4 rounded-xl border-2 border-red-500 text-red-500 font-black text-xs uppercase italic">Hapus</button>
+                <button onclick="orderViaWA()" class="py-4 rounded-xl bg-green-500 text-white font-black text-xs uppercase italic flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"><i data-lucide="send" class="w-4 h-4"></i> Pesan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll Top -->
+    <button id="btn-scroll-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="fixed bottom-6 right-6 p-4 bg-[var(--brand-secondary)] text-white rounded-2xl shadow-xl z-40 transition-all hover:scale-105 hidden">
+        <i data-lucide="chevron-up" class="w-6 h-6"></i>
+    </button>
+
+    <script>
+        /**
+         * PENTING: Ganti URL di bawah ini dengan URL CSV Spreadsheet Anda yang sudah di-publish.
+         */
+        const BRANDING_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOYY28haMZrDrwXrYkOBIlHEptevtiv7O8M8RkR0G_K5vZacWRJNwGM-5N3wCjDaU-9KqzywcaL8DA/pub?gid=0&single=true&output=csv';
+        const DATA_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOYY28haMZrDrwXrYkOBIlHEptevtiv7O8M8RkR0G_K5vZacWRJNwGM-5N3wCjDaU-9KqzywcaL8DA/pub?gid=1910038505&single=true&output=csv';
+        const TESTIMONY_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOYY28haMZrDrwXrYkOBIlHEptevtiv7O8M8RkR0G_K5vZacWRJNwGM-5N3wCjDaU-9KqzywcaL8DA/pub?gid=1790988718&single=true&output=csv';
+
+        let appData = {
+            branding: {},
+            services: [],
+            testimonials: [],
+            cart: JSON.parse(sessionStorage.getItem('cart') || '[]'),
+            filters: { platform: 'Semua', search: '', sort: 'default', page: 1 }
+        };
+
+        const ITEMS_PER_PAGE = 20;
+
+        const cleanPrice = (val) => {
+            if (!val) return 0;
+            return parseInt(val.toString().replace(/[^0-9]/g, '')) || 0;
+        };
+
+        const formatPrice = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
+
+        const parseCSV = (csvText) => {
+            if (!csvText) return [];
+            const lines = csvText.trim().split(/\r?\n/);
+            if (lines.length === 0) return [];
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            return lines.slice(1).map(line => {
+                const values = [];
+                let current = "", inQuotes = false;
+                for (let char of line) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) { values.push(current.trim()); current = ""; }
+                    else current += char;
+                }
+                values.push(current.trim());
+                return headers.reduce((obj, header, index) => {
+                    obj[header] = (values[index] || "").replace(/^"|"$/g, '');
+                    return obj;
+                }, {});
+            });
+        };
+
+        const fetchWithRetry = async (url, retries = 3) => {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit', cache: 'no-cache' });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return await response.text();
+                } catch (e) {
+                    if (i === retries - 1) throw e;
+                    await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+                }
+            }
+        };
+
+        const iconMap = {
+            'instagram': 'instagram',
+            'tiktok': 'music-2',
+            'youtube': 'youtube',
+            'facebook': 'facebook',
+            'twitter': 'twitter',
+            'x': 'twitter',
+            'spotify': 'music',
+            'telegram': 'send',
+            'shopee': 'shopping-bag',
+            'threads': 'message-circle'
+        };
+
+        const getPlatformIcon = (platform) => {
+            const p = (platform || '').toLowerCase();
+            for (const key in iconMap) {
+                if (p.includes(key)) return iconMap[key];
+            }
+            return 'globe';
+        };
+
+        const fixDriveUrl = (url) => {
+            if (!url) return '';
+            const idMatch = url.match(/id=([^&]+)/) || url.match(/\/file\/d\/([^/]+)/);
+            return idMatch ? `https://drive.google.com/uc?id=${idMatch[1]}` : url;
+        };
+
+        const toggleTheme = () => {
+            const body = document.body;
+            const icon = document.getElementById('theme-icon');
+            if (body.classList.contains('light')) {
+                body.classList.replace('light', 'dark');
+                icon.setAttribute('data-lucide', 'moon');
+            } else {
+                body.classList.replace('dark', 'light');
+                icon.setAttribute('data-lucide', 'sun');
+            }
+            lucide.createIcons();
+        };
+
+        const toggleCart = () => document.getElementById('cart-drawer').classList.toggle('translate-x-full');
+        const scrollFilters = (amount) => { document.getElementById('platform-filters').scrollLeft += amount; };
+
+        const fetchData = async () => {
+            try {
+                const [brandT, dataT, testT] = await Promise.all([
+                    fetchWithRetry(BRANDING_CSV), fetchWithRetry(DATA_CSV), fetchWithRetry(TESTIMONY_CSV)
+                ]);
+                const brandArray = parseCSV(brandT);
+                brandArray.forEach(item => { appData.branding[item.key] = item.value; });
+                appData.services = parseCSV(dataT);
+                appData.testimonials = parseCSV(testT);
+                renderAll();
+                setTimeout(() => {
+                    document.getElementById('loading-screen').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loading-screen').remove(), 500);
+                }, 800);
+            } catch (error) {
+                document.getElementById('loader-spinner').classList.add('hidden');
+                document.getElementById('error-message').classList.remove('hidden');
+            }
+        };
+
+        const renderAll = () => {
+            renderBranding(); renderFilters(); handleFilter(); renderTestimonials(); renderCart();
+            initEventListeners();
+            lucide.createIcons();
+        };
+
+        const renderBranding = () => {
+            const b = appData.branding;
+            if (b.color_dark_bg) document.documentElement.style.setProperty('--brand-primary', b.color_dark_bg);
+            if (b.color_dark_accent) document.documentElement.style.setProperty('--brand-accent', b.color_dark_accent);
+            if (b.color_secondary) document.documentElement.style.setProperty('--brand-secondary', b.color_secondary);
+            
+            document.getElementById('nav-brand-name').innerText = b.brand_name || 'Zadigital';
+            document.getElementById('footer-brand-name').innerText = b.brand_name || 'Zadigital';
+            document.getElementById('hero-title').innerText = b.hero_title || '';
+            document.getElementById('hero-subtitle').innerText = b.hero_subtitle || '';
+            document.getElementById('footer-text').innerText = b.footer_text || '';
+            document.getElementById('footer-wa').innerText = b.wa_number || '';
+            document.getElementById('footer-wa-link').href = `https://wa.me/${b.wa_number}`;
+
+            const logo = fixDriveUrl(b.logo_url);
+            if (logo) {
+                document.getElementById('nav-logo').src = logo;
+                document.getElementById('nav-logo').classList.remove('hidden');
+                document.getElementById('footer-logo').src = logo;
+                document.getElementById('footer-logo').classList.remove('hidden');
+                document.getElementById('hero-logo').src = logo;
+                document.getElementById('hero-logo').classList.remove('hidden');
+            }
+            
+            const sos = document.getElementById('footer-sosmed');
+            sos.innerHTML = '';
+            if (b.ig_url) sos.innerHTML += `<a href="${b.ig_url}" target="_blank" class="p-3 bg-[var(--bg-color)] rounded-xl border border-[var(--border-color)]"><i data-lucide="instagram" class="w-5 h-5 text-pink-500"></i></a>`;
+            if (b.tiktok_url) sos.innerHTML += `<a href="${b.tiktok_url}" target="_blank" class="p-3 bg-[var(--bg-color)] rounded-xl border border-[var(--border-color)]"><i data-lucide="music-2" class="w-5 h-5 text-blue-400"></i></a>`;
+        };
+
+        const renderFilters = () => {
+            const plats = [...new Set(appData.services.map(s => s.platform))].filter(Boolean);
+            const cont = document.getElementById('platform-filters');
+            cont.innerHTML = `<button onclick="setPlatform('Semua')" class="px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all ${appData.filters.platform === 'Semua' ? 'bg-[var(--brand-secondary)] text-white shadow-lg' : 'bg-[var(--surface-color)] opacity-60'}">SEMUA</button>` + 
+                plats.map(p => `<button onclick="setPlatform('${p}')" class="px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 whitespace-nowrap transition-all ${appData.filters.platform === p ? 'bg-[var(--brand-secondary)] text-white shadow-lg' : 'bg-[var(--surface-color)] opacity-60'}"><i data-lucide="${getPlatformIcon(p)}" class="w-4 h-4"></i>${p.toUpperCase()}</button>`).join('');
+            lucide.createIcons();
+        };
+
+        const setPlatform = (p) => { appData.filters.platform = p; appData.filters.page = 1; renderFilters(); handleFilter(); };
+
+        const handleFilter = () => {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const sort = document.getElementById('sort-select').value;
+            let filtered = appData.services.filter(s => {
+                const mP = appData.filters.platform === 'Semua' || s.platform === appData.filters.platform;
+                const mS = s.nama_layanan.toLowerCase().includes(search) || s.platform.toLowerCase().includes(search);
+                return mP && mS;
+            });
+            filtered.sort((a, b) => {
+                if (a.badge === 'Terlaris' && b.badge !== 'Terlaris') return -1;
+                if (a.badge !== 'Terlaris' && b.badge === 'Terlaris') return 1;
+                const pA = cleanPrice(a.harga), pB = cleanPrice(b.harga);
+                if (sort === 'cheap') return pA - pB;
+                if (sort === 'expensive') return pB - pA;
+                return 0;
+            });
+            const start = (appData.filters.page - 1) * ITEMS_PER_PAGE;
+            renderServices(filtered.slice(start, start + ITEMS_PER_PAGE));
+            renderPagination(Math.ceil(filtered.length / ITEMS_PER_PAGE));
+        };
+
+        const renderServices = (services) => {
+            const grid = document.getElementById('services-grid');
+            if (services.length === 0) { grid.innerHTML = `<div class="col-span-full py-16 text-center opacity-30"><p class="font-black italic">TIDAK ADA DATA</p></div>`; lucide.createIcons(); return; }
+            grid.innerHTML = services.map(s => {
+                const isOut = s.stok?.toLowerCase() === 'habis';
+                const cPrice = cleanPrice(s.harga);
+                return `
+                    <div class="service-card group bg-[var(--surface-color)] border border-[var(--border-color)] rounded-2xl p-6 flex flex-col shadow-sm transition-all duration-300">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="w-12 h-12 rounded-xl bg-[var(--brand-accent)]/10 flex items-center justify-center">
+                                <i data-lucide="${getPlatformIcon(s.platform)}" class="w-6 h-6 text-[var(--brand-secondary)]"></i>
+                            </div>
+                            ${s.badge ? `<span class="px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${s.badge.includes('Terlaris') ? 'bg-orange-500' : 'bg-blue-600'} text-white shadow-lg">${s.badge}</span>` : ''}
+                        </div>
+                        <h3 class="text-xl font-black mb-1.5 leading-tight italic uppercase tracking-tighter">${s.nama_layanan}</h3>
+                        <div class="mb-4">
+                            <span class="text-xl font-black text-[var(--brand-secondary)]">${formatPrice(cPrice)}</span>
+                        </div>
+                        <div class="mt-auto pt-4 border-t border-[var(--border-color)] flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-2 h-2 rounded-full ${isOut ? 'bg-red-500' : 'bg-green-500 animate-pulse'}"></div>
+                                <span class="text-[9px] font-black ${isOut ? 'text-red-500' : 'text-green-500'} uppercase">${s.stok || 'AKTIF'}</span>
+                            </div>
+                            <button data-action="buy" data-name="${s.nama_layanan}" data-price="${cPrice}" ${isOut ? 'disabled' : ''} class="flex-1 py-2.5 px-4 rounded-xl font-black text-[10px] bg-[var(--brand-primary)] text-white hover:scale-105 active:scale-95 transition-all disabled:opacity-20 uppercase italic">+ KE KERANJANG</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        };
+
+        const renderPagination = (total) => {
+            const cont = document.getElementById('pagination');
+            if (total <= 1) { cont.innerHTML = ''; return; }
+            cont.innerHTML = Array.from({length: total}, (_, i) => i + 1).map(n => `<button data-action="page" data-page="${n}" class="w-10 h-10 rounded-xl font-black text-xs transition-all ${n === appData.filters.page ? 'bg-[var(--brand-secondary)] text-white' : 'bg-[var(--surface-color)] border border-[var(--border-color)] opacity-60'}">${n}</button>`).join('');
+        };
+
+        const initEventListeners = () => {
+            document.body.addEventListener('click', (e) => {
+                const buyBtn = e.target.closest('[data-action="buy"]');
+                if (buyBtn) addToCart(buyBtn.dataset.name, parseInt(buyBtn.dataset.price));
+                const pageBtn = e.target.closest('[data-action="page"]');
+                if (pageBtn) { appData.filters.page = parseInt(pageBtn.dataset.page); handleFilter(); document.getElementById('services-section').scrollIntoView({ behavior: 'smooth' }); }
+            });
+
+            window.addEventListener('scroll', () => {
+                const btn = document.getElementById('btn-scroll-top');
+                if (window.scrollY > 400) btn.classList.remove('hidden');
+                else btn.classList.add('hidden');
+            });
+        };
+
+        const renderTestimonials = () => {
+            const marquee = document.getElementById('testimonial-marquee');
+            const data = appData.testimonials.length > 0 ? [...appData.testimonials, ...appData.testimonials] : [];
+            marquee.innerHTML = data.map(t => `
+                <div class="p-8 bg-[var(--bg-color)] rounded-2xl border border-[var(--border-color)] shadow-sm min-w-[300px] md:min-w-[400px]">
+                    <div class="flex gap-1.5 mb-4">${Array(parseInt(t.bintang || 5)).fill(0).map(() => `<i data-lucide="star" class="w-4 h-4 fill-yellow-400 text-yellow-400"></i>`).join('')}</div>
+                    <p class="text-sm italic mb-6 opacity-60 leading-relaxed font-bold whitespace-normal">"${t.isi}"</p>
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-secondary)] to-[var(--brand-accent)] flex items-center justify-center text-white font-black text-sm">${t.nama?.charAt(0) || '?'}</div>
+                        <div><h4 class="font-black text-xs uppercase">${t.nama}</h4><span class="text-[8px] opacity-40 uppercase font-black tracking-widest">${t.platform_order}</span></div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        };
+
+        const addToCart = (name, price) => {
+            const ex = appData.cart.find(i => i.name === name);
+            if (ex) ex.qty += 1; else appData.cart.push({ name, price, qty: 1 });
+            saveCart(); renderCart(); toggleCart();
+        };
+        const updateQty = (index, d) => { appData.cart[index].qty += d; if (appData.cart[index].qty < 1) appData.cart.splice(index, 1); saveCart(); renderCart(); };
+        const removeItem = (index) => { appData.cart.splice(index, 1); saveCart(); renderCart(); };
+        const clearCart = () => { appData.cart = []; saveCart(); renderCart(); };
+        const saveCart = () => sessionStorage.setItem('cart', JSON.stringify(appData.cart));
+
+        const renderCart = () => {
+            const cont = document.getElementById('cart-items'), badge = document.getElementById('cart-badge'), totEl = document.getElementById('cart-total');
+            if (appData.cart.length === 0) {
+                cont.innerHTML = `<div class="h-full flex flex-col items-center justify-center opacity-20 text-center"><i data-lucide="shopping-basket" class="w-16 h-16 mb-4"></i><p class="font-black uppercase tracking-widest text-[10px]">Kosong</p></div>`;
+                badge.classList.add('hidden'); totEl.innerText = formatPrice(0); lucide.createIcons(); return;
+            }
+            let tot = 0, count = 0;
+            cont.innerHTML = appData.cart.map((it, idx) => {
+                const sub = it.price * it.qty; tot += sub; count += it.qty;
+                return `
+                    <div class="bg-[var(--bg-color)] p-6 rounded-2xl border border-[var(--border-color)]">
+                        <div class="flex justify-between items-start mb-4"><h4 class="font-black flex-1 text-xs uppercase italic leading-tight">${it.name}</h4><button onclick="removeItem(${idx})" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-4 bg-[var(--surface-color)] p-1.5 rounded-xl border">
+                                <button onclick="updateQty(${idx}, -1)" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-black/5"><i data-lucide="minus" class="w-3 h-3"></i></button>
+                                <span class="w-6 text-center font-black text-xs">${it.qty}</span>
+                                <button onclick="updateQty(${idx}, 1)" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-black/5"><i data-lucide="plus" class="w-3 h-3"></i></button>
+                            </div>
+                            <span class="font-black text-sm text-[var(--brand-secondary)]">${formatPrice(sub)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            totEl.innerText = formatPrice(tot); badge.innerText = count; badge.classList.remove('hidden'); lucide.createIcons();
+        };
+
+        const orderViaWA = () => {
+            const b = appData.branding;
+            let msg = `${b.wa_greeting || "Halo, saya mau order:"}\n\n`, tot = 0;
+            appData.cart.forEach((it, i) => { const sub = it.price * it.qty; tot += sub; msg += `${i+1}. ${it.name} x${it.qty} = ${formatPrice(sub)}\n`; });
+            msg += `\nTotal: ${formatPrice(tot)}\n\nTerima kasih!`;
+            window.open(`https://wa.me/${b.wa_number}?text=${encodeURIComponent(msg)}`, '_blank');
+        };
+
+        window.onload = fetchData;
+        window.onscroll = () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 20) nav.classList.add('py-1', 'shadow-2xl'); else nav.classList.remove('py-1', 'shadow-2xl');
+        };
+    </script>
+</body>
 </html>
