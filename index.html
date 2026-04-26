@@ -62,17 +62,13 @@
 </head>
 <body class="dark min-h-screen">
 
-    <!-- MODAL POPUP PROMO (Otomatis muncul jika 'pop_up' di sheet ada isinya) -->
+    <!-- MODAL POPUP PROMO (Sekarang Menampilkan GAMBAR jika 'pop_up' di sheet diisi URL) -->
     <div id="popup-promo" class="fixed inset-0 z-[100] hidden items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
-        <div class="bg-[var(--surface-color)] border border-[var(--border-color)] rounded-2xl p-8 max-w-md w-full relative shadow-2xl">
-            <button onclick="closePopup()" class="absolute top-4 right-4 p-2 opacity-50 hover:opacity-100"><i data-lucide="x"></i></button>
-            <div id="popup-content" class="text-center">
-                <div class="w-16 h-16 bg-[var(--brand-accent)]/20 rounded-full flex items-center justify-center mx-auto mb-4 text-[var(--brand-accent)]">
-                    <i data-lucide="megaphone" class="w-8 h-8"></i>
-                </div>
-                <h3 class="text-xl font-bold mb-4 italic uppercase">Informasi Penting</h3>
-                <p id="popup-text" class="opacity-70 leading-relaxed italic mb-6"></p>
-                <button onclick="closePopup()" class="w-full py-3 bg-[var(--brand-secondary)] text-white rounded-xl font-bold uppercase text-xs tracking-widest">Siap, Lanjutkan</button>
+        <div class="bg-[var(--surface-color)] border border-[var(--border-color)] rounded-2xl p-4 max-w-md w-full relative shadow-2xl overflow-hidden">
+            <button onclick="closePopup()" class="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full z-10 hover:bg-black/70 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>
+            <div id="popup-content">
+                <!-- Gambar Promo akan dirender di sini -->
+                <img id="popup-image-display" src="" alt="Promo" class="w-full h-auto rounded-xl object-cover">
             </div>
         </div>
     </div>
@@ -136,7 +132,7 @@
         </div>
     </section>
 
-    <!-- CARA ORDER SECTION -->
+    <!-- CARA ORDER SECTION (6 LANGKAH) -->
     <section id="cara-order-section" class="py-20 px-4 bg-[var(--surface-color)] rounded-3xl mx-4 border border-[var(--border-color)]">
         <div class="max-w-7xl mx-auto">
             <div class="text-center mb-16">
@@ -226,7 +222,7 @@
     <!-- BONUS SECTION (Hanya tampil jika ada gambar di 'Bonus_1/2/3' di Sheet) -->
     <section id="bonus-section" class="py-20 px-4 hidden">
         <div class="max-w-7xl mx-auto text-center">
-            <h2 class="text-3xl font-black mb-12 italic uppercase">Bonus Exclusive</h2>
+            <h2 class="text-3xl font-black mb-12 italic uppercase text-[var(--brand-accent)]">Bonus Exclusive</h2>
             <div id="bonus-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
         </div>
     </section>
@@ -240,7 +236,8 @@
                         <img id="footer-logo" src="" alt="Logo" class="w-8 h-8 object-contain hidden">
                         <span id="footer-brand-name" class="text-lg font-black tracking-tighter italic uppercase">Zadigital</span>
                     </div>
-                    <div id="footer-sosmed" class="flex gap-3"></div>
+                    <!-- Teks Sosial Media di Footer -->
+                    <div id="footer-sosmed" class="flex flex-wrap gap-4"></div>
                 </div>
                 <div class="space-y-4">
                     <h4 class="font-black uppercase tracking-widest text-[10px] opacity-40">Layanan</h4>
@@ -267,8 +264,8 @@
         <div class="p-6 bg-[var(--bg-color)] border-t border-white/5 space-y-6">
             <div class="flex justify-between items-center"><span class="opacity-40 font-black uppercase text-[10px]">Grand Total</span><span id="cart-total" class="text-2xl font-black text-[var(--brand-secondary)]">Rp 0</span></div>
             <div class="grid grid-cols-2 gap-3">
-                <button onclick="clearCart()" class="py-3.5 rounded-xl border border-red-500/20 text-red-500 font-black text-[10px] uppercase italic">Kosongkan</button>
-                <button onclick="orderViaWA()" class="py-3.5 rounded-xl bg-green-500 text-white font-black text-[10px] uppercase italic flex items-center justify-center gap-2"><i data-lucide="send" class="w-3 h-3"></i> Pesan WA</button>
+                <button onclick="clearCart()" class="py-3.5 rounded-xl border border-red-500/20 text-red-500 font-black text-[10px] uppercase italic transition-all hover:bg-red-500 hover:text-white">Kosongkan</button>
+                <button onclick="orderViaWA()" class="py-3.5 rounded-xl bg-green-500 text-white font-black text-[10px] uppercase italic flex items-center justify-center gap-2 hover:bg-green-600 shadow-lg shadow-green-500/20"><i data-lucide="send" class="w-3 h-3"></i> Pesan WA</button>
             </div>
         </div>
     </div>
@@ -285,7 +282,7 @@
         let appData = { branding: {}, services: [], testimonials: [], cart: JSON.parse(sessionStorage.getItem('cart') || '[]'), filters: { platform: 'Semua', search: '', sort: 'default', page: 1 } };
         const ITEMS_PER_PAGE = 20;
 
-        /* MAP ICON LUCIDE UNTUK SETIAP PLATFORM */
+        /* MAP ICON LUCIDE UNTUK SETIAP PLATFORM (Digunakan pada Card saja) */
         const iconMap = { 'instagram': 'instagram', 'tiktok': 'music-2', 'youtube': 'youtube', 'facebook': 'facebook', 'twitter': 'twitter', 'x': 'twitter', 'spotify': 'music', 'telegram': 'send', 'threads': 'message-circle', 'soundcloud': 'cloud', 'shopee': 'shopping-bag', 'linkedin': 'linkedin', 'twitch': 'tv' };
         const getPlatformIcon = (platform) => { const p = (platform || '').toLowerCase(); for (const key in iconMap) { if (p.includes(key)) return iconMap[key]; } return 'globe'; };
 
@@ -296,7 +293,11 @@
 
         const fetchData = async () => {
             try {
-                const [brandT, dataT, testT] = await Promise.all([fetch(BRANDING_CSV, {cache: "no-store"}).then(r => r.text()), fetch(DATA_CSV, {cache: "no-store"}).then(r => r.text()), fetch(TESTIMONY_CSV, {cache: "no-store"}).then(r => r.text())]);
+                const [brandT, dataT, testT] = await Promise.all([
+                    fetch(BRANDING_CSV, {cache: "no-store"}).then(r => r.text()), 
+                    fetch(DATA_CSV, {cache: "no-store"}).then(r => r.text()), 
+                    fetch(TESTIMONY_CSV, {cache: "no-store"}).then(r => r.text())
+                ]);
                 parseCSV(brandT).forEach(it => { appData.branding[it.key] = it.value; });
                 appData.services = parseCSV(dataT);
                 appData.testimonials = parseCSV(testT);
@@ -305,12 +306,20 @@
             } catch (e) { document.getElementById('loading-brand-name').innerText = "Gagal Memuat Data"; }
         };
 
-        /* FUNGSI UTAMA UNTUK UPDATE WARNA DARI SHEET */
+        const fixDriveUrl = (url) => {
+            if (!url) return '';
+            const idMatch = url.match(/id=([^&]+)/) || url.match(/\/file\/d\/([^/]+)/);
+            return idMatch ? `https://drive.google.com/uc?id=${idMatch[1]}` : url;
+        };
+
         const applyColors = () => {
             const b = appData.branding; const root = document.documentElement; const isDark = document.body.classList.contains('dark');
+            // Warna Dasar
             if (b.color_default) root.style.setProperty('--brand-primary', b.color_default);
             if (b.color_accent) root.style.setProperty('--brand-accent', b.color_accent);
             if (b.color_secondary) root.style.setProperty('--brand-secondary', b.color_secondary);
+            
+            // Logika Warna Tema (Kelompok key sesuai instruksi)
             if (isDark) {
                 if (b.color_dark_bg) root.style.setProperty('--bg-color', b.color_dark_bg);
                 if (b.color_dark_surface) root.style.setProperty('--surface-color', b.color_dark_surface);
@@ -335,19 +344,18 @@
             document.getElementById('footer-wa').innerText = b.wa_number || '';
             document.getElementById('footer-wa-link').href = `https://wa.me/${b.wa_number}`;
 
-            // Hero Section (Handle Dynamic Font Size)
+            // Hero Section
             const title = b.hero_title || b.brand_name || 'Zadigital';
             const titleEl = document.getElementById('hero-title');
             titleEl.innerHTML = title.split(' ').join('<br>');
             titleEl.style.fontSize = title.length > 15 ? '2.5rem' : '';
-
             document.getElementById('hero-subtitle').innerText = b.hero_subtitle || '';
 
-            // Logo Section
-            const logoUrl = b.logo_url ? (b.logo_url.includes('drive.google.com') ? `https://drive.google.com/uc?id=${b.logo_url.match(/id=([^&]+)/)?.[1] || b.logo_url.match(/\/file\/d\/([^/]+)/)?.[1]}` : b.logo_url) : '';
+            // Logo
+            const logoUrl = fixDriveUrl(b.logo_url);
             if (logoUrl) { ['nav-logo', 'footer-logo', 'hero-logo'].forEach(id => { const el = document.getElementById(id); el.src = logoUrl; el.classList.remove('hidden'); }); }
 
-            // INFO & CATATAN (Prinsip Kosong)
+            // INFO & CATATAN
             const infoSection = document.getElementById('info-section');
             if (b.info_title || b.info_body || b.catatan) {
                 infoSection.classList.remove('hidden');
@@ -357,15 +365,16 @@
                 if (b.catatan) { catBox.classList.remove('hidden'); document.getElementById('catatan-text-display').innerText = b.catatan; } else { catBox.classList.add('hidden'); }
             }
 
-            // POPUP (Prinsip Kosong)
+            // POPUP GAMBAR (Prinsip Kosong)
             if (b.pop_up) {
                 const popup = document.getElementById('popup-promo');
+                const popupImg = document.getElementById('popup-image-display');
+                popupImg.src = fixDriveUrl(b.pop_up);
                 popup.classList.remove('hidden');
                 popup.classList.add('flex');
-                document.getElementById('popup-text').innerText = b.pop_up;
             }
 
-            // BONUS SECTION (Prinsip Kosong)
+            // BONUS SECTION
             const bonusKeys = ['Bonus_1', 'Bonus_2', 'Bonus_3'];
             const bonusSection = document.getElementById('bonus-section');
             const bonusGrid = document.getElementById('bonus-grid');
@@ -374,17 +383,16 @@
             bonusKeys.forEach(k => {
                 if (b[k]) {
                     hasBonus = true;
-                    const bUrl = b[k].includes('drive.google.com') ? `https://drive.google.com/uc?id=${b[k].match(/id=([^&]+)/)?.[1] || b[k].match(/\/file\/d\/([^/]+)/)?.[1]}` : b[k];
-                    bonusGrid.innerHTML += `<img src="${bUrl}" class="w-full h-auto rounded-xl shadow-lg border border-[var(--border-color)]">`;
+                    bonusGrid.innerHTML += `<img src="${fixDriveUrl(b[k])}" class="w-full h-auto rounded-xl shadow-lg border border-[var(--border-color)]">`;
                 }
             });
             if (hasBonus) bonusSection.classList.remove('hidden');
 
-            // Footer Sosmed (Lucide Only)
+            // Footer Sosmed (Teks Saja)
             const footerSosmed = document.getElementById('footer-sosmed');
             footerSosmed.innerHTML = '';
-            [['ig_url', 'instagram'], ['tiktok_url', 'music-2'], ['youtube_url', 'youtube']].forEach(([key, icon]) => {
-                if (b[key]) footerSosmed.innerHTML += `<a href="${b[key]}" target="_blank" class="p-2.5 bg-[var(--bg-color)] rounded-xl border border-[var(--border-color)] hover:scale-110 transition-transform"><i data-lucide="${icon}" class="w-4 h-4"></i></a>`;
+            [['ig_url', 'INSTAGRAM'], ['tiktok_url', 'TIKTOK'], ['youtube_url', 'YOUTUBE']].forEach(([key, label]) => {
+                if (b[key]) footerSosmed.innerHTML += `<a href="${b[key]}" target="_blank" class="px-4 py-2 bg-[var(--surface-color)] rounded-lg border border-[var(--border-color)] text-[9px] font-black tracking-[0.2em] hover:bg-[var(--brand-secondary)] hover:text-white transition-all uppercase">${label}</a>`;
             });
 
             renderFilters(); handleFilter(); renderTestimonials(); renderCart();
@@ -394,9 +402,9 @@
         const renderFilters = () => {
             const plats = [...new Set(appData.services.map(s => s.platform))].filter(Boolean);
             const cont = document.getElementById('platform-filters');
-            cont.innerHTML = `<button onclick="setPlatform('Semua')" class="px-3 py-2 rounded-lg text-[9px] font-black transition-all ${appData.filters.platform === 'Semua' ? 'bg-[var(--brand-secondary)] text-white' : 'bg-[var(--surface-color)] opacity-60'}">SEMUA</button>` + 
-                plats.map(p => `<button onclick="setPlatform('${p}')" class="px-3 py-2 rounded-lg text-[9px] font-black flex items-center gap-2 transition-all ${appData.filters.platform === p ? 'bg-[var(--brand-secondary)] text-white' : 'bg-[var(--surface-color)] opacity-60'}"><i data-lucide="${getPlatformIcon(p)}" class="w-3 h-3"></i>${p.toUpperCase()}</button>`).join('');
-            lucide.createIcons();
+            // Menghilangkan icon di filter platform
+            cont.innerHTML = `<button onclick="setPlatform('Semua')" class="px-4 py-2 rounded-lg text-[10px] font-black transition-all ${appData.filters.platform === 'Semua' ? 'bg-[var(--brand-secondary)] text-white shadow-lg' : 'bg-[var(--surface-color)] opacity-60'}">SEMUA</button>` + 
+                plats.map(p => `<button onclick="setPlatform('${p}')" class="px-4 py-2 rounded-lg text-[10px] font-black whitespace-nowrap transition-all ${appData.filters.platform === p ? 'bg-[var(--brand-secondary)] text-white shadow-lg' : 'bg-[var(--surface-color)] opacity-60'}">${p.toUpperCase()}</button>`).join('');
         };
 
         const setPlatform = (p) => { appData.filters.platform = p; appData.filters.page = 1; renderFilters(); handleFilter(); };
@@ -419,13 +427,13 @@
                 return `<div class="service-card group bg-[var(--surface-color)] border border-[var(--border-color)] rounded-xl p-5 flex flex-col shadow-sm transition-all duration-300">
                     <div class="flex justify-between items-start mb-4">
                         <div class="w-10 h-10 rounded-lg bg-[var(--brand-accent)]/10 flex items-center justify-center text-[var(--brand-secondary)]"><i data-lucide="${getPlatformIcon(s.platform)}" class="w-5 h-5"></i></div>
-                        ${s.badge ? `<span class="px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${s.badge.includes('Terlaris') ? 'bg-orange-500' : 'bg-blue-600'} text-white">${s.badge}</span>` : ''}
+                        ${s.badge ? `<span class="px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${s.badge.includes('Terlaris') ? 'bg-orange-500' : 'bg-blue-600'} text-white shadow-lg">${s.badge}</span>` : ''}
                     </div>
                     <h3 class="text-lg font-black mb-1 leading-tight italic uppercase tracking-tighter">${s.nama_layanan}</h3>
                     <div class="mb-4"><span class="text-lg font-black text-[var(--brand-secondary)]">${formatPrice(cPrice)}</span></div>
                     <div class="mt-auto pt-4 border-t border-white/5 flex items-center justify-between gap-3">
                         <div class="flex items-center gap-1.5"><div class="w-2 h-2 rounded-full ${isOut ? 'bg-red-500' : 'bg-green-500 animate-pulse'}"></div><span class="text-[8px] font-black ${isOut ? 'text-red-500' : 'text-green-500'} uppercase">${s.stok || 'AKTIF'}</span></div>
-                        <button onclick="addToCart('${s.nama_layanan}', ${cPrice})" ${isOut ? 'disabled' : ''} class="flex-1 py-2 px-3 rounded-lg font-black text-[9px] bg-[var(--brand-primary)] text-white hover:scale-105 transition-all disabled:opacity-20 uppercase">+ KE KERANJANG</button>
+                        <button onclick="addToCart('${s.nama_layanan}', ${cPrice})" ${isOut ? 'disabled' : ''} class="flex-1 py-2 px-3 rounded-lg font-black text-[9px] bg-[var(--brand-primary)] text-white hover:scale-105 active:scale-95 transition-all disabled:opacity-20 uppercase tracking-tighter">+ KE KERANJANG</button>
                     </div>
                 </div>`;
             }).join('');
